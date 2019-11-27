@@ -17,7 +17,7 @@ static chip8_t *chip8;
 static unsigned int multiplier = 8;
 static const long event_mask = (KeyPressMask | KeyReleaseMask | ExposureMask);
 
-void redraw_game(chip8_t *caller, chip8_callback_type_t type) {
+void redraw_game(chip8_t *caller, chip8_event_t event) {
 	XExposeEvent expose_event;
 	memset(&expose_event, 0, sizeof(XExposeEvent));
 	expose_event.type = Expose;
@@ -28,12 +28,6 @@ void redraw_game(chip8_t *caller, chip8_callback_type_t type) {
 	XFlush(display);
 	XUnlockDisplay(display);
 }
-
-#if DEBUG
-void handle_cycle(chip8_t *caller, chip8_callback_type_t type) {
-	printf("PC: %x\n", (int)caller->program_counter);
-}
-#endif
 
 int main(int argc, char **argv) {
 #define die(message...) { warn(message); return 1; }
@@ -73,9 +67,6 @@ int main(int argc, char **argv) {
 	}
 	chip8->dont_auto_update_keyboard_mask = 1;
 	chip8_set_callback(chip8, CHIP8_REDRAW, &redraw_game);
-	#if DEBUG
-	chip8_set_callback(chip8, CHIP8_CYCLE, &handle_cycle);
-	#endif
 
 	// Connect to the display
 	display = XOpenDisplay(NULL);
