@@ -6,15 +6,26 @@
 #define CHIP8_SCREEN_HEIGHT 32
 
 typedef enum {
-	CHIP8_BEEP = 0,
-	CHIP8_CYCLE = 1,
-	CHIP8_REDRAW = 2
+	CHIP8_CYCLE = 0,
+	CHIP8_REDRAW = 1
 } chip8_callback_type_t;
 
 struct chip8_t;
 typedef struct chip8_t chip8_t;
 
-typedef void(*chip8_callback_t)(chip8_t *, chip8_callback_type_t);
+typedef struct {
+	chip8_callback_type_t type;
+	union {
+		struct {
+			uint8_t x;
+			uint8_t y;
+			uint8_t width;
+			uint8_t height;
+		} redraw_event;
+	};
+} chip8_event_t;
+
+typedef void(*chip8_callback_t)(chip8_t *, chip8_event_t);
 
 struct chip8_t {
 	// 1 represents a white pixel and 0 represents a black pixel. Use this for drawing.
@@ -26,7 +37,7 @@ struct chip8_t {
 
 	// Do not access these directly unless you know what you are doing.
 	uint8_t memory[0x1000];
-	chip8_callback_t callbacks[3];
+	chip8_callback_t callbacks[2];
 	uint8_t registers[0x10];
 	uint16_t program_counter; // PC
 	struct {

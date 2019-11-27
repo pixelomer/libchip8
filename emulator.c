@@ -129,6 +129,11 @@ static uint8_t font[] = {
 
 static uint8_t is_little_endian = 2;
 
+void chip8_perform_callback(chip8_t *self, chip8_event_t event) {
+	chip8_callback_t callback = self->callbacks[event.type];
+	if (callback) callback(self, event);
+}
+
 chip8_t *chip8_init(void) {
 	chip8_t *self = calloc(1, sizeof(chip8_t));
 	if (!self) return NULL;
@@ -148,7 +153,6 @@ size_t chip8_load_rom(chip8_t *self, const char *path) {
 }
 
 void chip8_cycle(chip8_t *self) {
-#define SIGNAL(type) if (self->callbacks[type]) self->callbacks[type](self, type);
 	uint16_t opcode;
 	{
 		opcode = *(uint16_t *)&self->memory[self->program_counter];
@@ -176,7 +180,15 @@ void chip8_cycle(chip8_t *self) {
 						self->framebuffer[x][y] = 0;
 					}
 				}
-				SIGNAL(CHIP8_REDRAW);
+				if (self->callbacks[CHIP8_REDRAW]) {
+					chip8_event_t event;
+					event.type = CHIP8_REDRAW;
+					event.redraw_event.x = 0;
+					event.redraw_event.y = 0;
+					event.redraw_event.width = CHIP8_SCREEN_WIDTH;
+					event.redraw_event.height = CHIP8_SCREEN_HEIGHT;
+					chip8_perform_callback(self, event);
+				}
 			}
 			else if (n == 0xE) {
 				// 00EE (Flow) - Returns from a subroutine.
@@ -293,7 +305,15 @@ void chip8_cycle(chip8_t *self) {
 					self->framebuffer[x+xi-xoffset][y+yi] = (old_value && value) ? !value : value;
 				}
 			}
-			SIGNAL(CHIP8_REDRAW);
+			if (self->callbacks[CHIP8_REDRAW]) {
+				chip8_event_t event;
+				event.type = CHIP8_REDRAW;
+				event.redraw_event.x = x;
+				event.redraw_event.y = y;
+				event.redraw_event.width = 8;
+				event.redraw_event.height = height;
+				chip8_perform_callback(self, event);
+			}
 			break;
 		}
 		case 0xE:
@@ -419,11 +439,12 @@ void chip8_cycle(chip8_t *self) {
 			break;
 	}
 	if (self->timers.delay > 0) self->timers.delay--;
-	if (self->timers.sound > 0) {
-		self->timers.sound--;
-		if (self->timers.sound == 0) SIGNAL(CHIP8_BEEP);
+	if (self->timers.sound > 0) self->timers.sound--;
+	if (self->callbacks[CHIP8_CYCLE]) {
+		chip8_event_t event;
+		event.type = CHIP8_CYCLE;
+		chip8_perform_callback(self, event);
 	}
-	SIGNAL(CHIP8_CYCLE);
 }
 
 chip8_t *chip8_loop(chip8_t *self) {
