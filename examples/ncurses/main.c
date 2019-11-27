@@ -11,6 +11,7 @@
 
 static int argc;
 static char **argv;
+static uint8_t multiplier = 2;
 static chip8_t *chip8;
 static WINDOW *game_window;
 
@@ -26,12 +27,15 @@ static void handle_chip8_call(chip8_t *chip8, chip8_event_t event) {
 				event.redraw_event.x = 0;
 				event.redraw_event.y = 0;
 			}
+			// FIXME: Drawing out of bounds doesn't wrap around
 			for (uint8_t y=0; y<event.redraw_event.height; y++) {
+				if ((event.redraw_event.y+y) >= CHIP8_SCREEN_HEIGHT) break;
 				for (uint8_t x=0; x<event.redraw_event.width; x++) {
-					wmove(game_window, (event.redraw_event.y+y), (event.redraw_event.x+x)*2);
+					if ((event.redraw_event.x+x) >= CHIP8_SCREEN_HEIGHT) break;
+					wmove(game_window, (event.redraw_event.y+y), (event.redraw_event.x+x)*multiplier);
 					bool pixel = chip8->framebuffer[x+event.redraw_event.x][y+event.redraw_event.y];
 					if (should_invert) pixel = !pixel;
-					for (uint8_t i=0; i<2; i++) {
+					for (uint8_t i=0; i<multiplier; i++) {
 						if (pixel) waddch(game_window, ' ' | A_REVERSE);
 						else waddch(game_window, ' ');
 					}
@@ -49,15 +53,19 @@ int main(int _argc, char **_argv) {
 	argv = _argv;
 	argc = _argc;
 	if (argc < 2) {
-		eexit("Usage: %s <rom>\n", *argv);
+		eexit("Usage: %s <rom> [font-flag]\n"
+		      "  font-flag: Specify 0 to print 1 character per pixel or\n"
+			  "             a different value (default) if you want to\n"
+			  "             2 characters per pixel.\n", *argv);
 	}
+	if ((argc >= 3) && (*(argv[2]) == '0')) multiplier = 1;
 	if (!(chip8 = chip8_init())) eexit("Failed to initialize the emulator.\n");
 	if (!chip8_load_rom(chip8, argv[1])) eexit("Failed to load the ROM file.\n");
 	initscr();
 	curs_set(0);
 	noecho();
-	for (uint8_t i=0; i<130; i++) for (uint8_t y=0; y<34; y++) mvwaddch(stdscr, y, i, '#');
-	game_window = newwin(32, 128, 1, 1);
+	for (uint8_t i=0; i<((CHIP8_SCREEN_WIDTH * multiplier)+2); i++) for (uint8_t y=0; y<CHIP8_SCREEN_HEIGHT+2; y++) mvwaddch(stdscr, y, i, '#');
+	game_window = newwin(CHIP8_SCREEN_HEIGHT, (CHIP8_SCREEN_WIDTH * multiplier), 1, 1);
 	wclear(game_window);
 	wrefresh(stdscr);
 	wrefresh(game_window);
