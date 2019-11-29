@@ -336,11 +336,11 @@ void chip8_cycle(chip8_t *self) {
 					// FX07 (Timer) - Sets VX to the value of the delay timer.
 					self->registers[NIBBLE(opcode, 2)] = self->timers.delay;
 					break;
-				case 0x0A:
+				case 0x0A: {
 					// FX0A (KeyOp) - A key press is awaited, and then stored in VX. (Blocking Operation)
-					if (!self->keyboard_mask) self->program_counter-=2;
+					uint16_t temp = self->keyboard_mask;
+					if (!temp) self->program_counter-=2;
 					else {
-						uint16_t temp = self->keyboard_mask;
 						uint8_t val = 0xF;
 						while (!(temp & (1 << 15))) {
 							temp <<= 1;
@@ -350,6 +350,7 @@ void chip8_cycle(chip8_t *self) {
 						self->keyboard_mask = 0;
 					}
 					break;
+				}
 				case 0x15:
 					// FX15 (Timer) - Sets the delay timer to VX.
 					self->timers.delay = self->registers[NIBBLE(opcode, 2)];
