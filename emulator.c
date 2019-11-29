@@ -228,7 +228,12 @@ void chip8_cycle(chip8_t *self) {
 		case 0x8:
 			// 8XY? operations
 			switch (NIBBLE(opcode, 4)) {
-				#define case(a, op) case a: self->registers[NIBBLE(opcode, 2)] = self->registers[NIBBLE(opcode, 2)] op self->registers[NIBBLE(opcode, 3)]; break;
+				#define case(a, op) case a: \
+					self->registers[NIBBLE(opcode, 2)] = ( \
+						self->registers[NIBBLE(opcode, 2)] op \
+						self->registers[NIBBLE(opcode, 3)] \
+					); \
+					break;
 				case(0x1, |); // 8XY1 (BitOp) - Sets VX to VX or VY. (Bitwise OR operation)
 				case(0x2, &); // 8XY2 (BitOp) - Sets VX to VX and VY. (Bitwise AND operation)
 				case(0x3, ^); // 8XY3 (BitOp) - Sets VX to VX xor VY.
@@ -395,11 +400,11 @@ void chip8_cycle(chip8_t *self) {
 					self->memory[(self->mem_pt+2) % 0x1000] = remainder;
 					break;
 				}
-				#define FXN5_LEGACY_BEHAVIOR 1
+				#define FXN5_LEGACY_BEHAVIOR 0
 				#if FXN5_LEGACY_BEHAVIOR
-				#define NEXT(pt,offset) pt+offset
+				#define NEXT(offset) self->mem_pt++
 				#else
-				#define NEXT(pt,offset) pt++
+				#define NEXT(offset) ((self->mem_pt+offset) % 0x1000)
 				#endif
 				case 0x55: {
 					// FX55 (MEM)
@@ -410,8 +415,8 @@ void chip8_cycle(chip8_t *self) {
 					// --------------------------------------------------------------
 					uint8_t register_index = NIBBLE(opcode, 2);
 					for (uint8_t i=0; i < register_index+1; i++) {
-						self->memory[NEXT(self->mem_pt, i)] = self->registers[i];
-						#if !FXN5_LEGACY_BEHAVIOR
+						self->memory[NEXT(i)] = self->registers[i];
+						#if FXN5_LEGACY_BEHAVIOR
 						self->mem_pt = self->mem_pt % 0x1000;
 						#endif
 					}
@@ -427,8 +432,8 @@ void chip8_cycle(chip8_t *self) {
 					// --------------------------------------------------------------
 					uint8_t register_index = NIBBLE(opcode, 2);
 					for (uint8_t i=0; i < register_index+1; i++) {
-						self->registers[i] = self->memory[NEXT(self->mem_pt, i)];
-						#if !FXN5_LEGACY_BEHAVIOR
+						self->registers[i] = self->memory[NEXT(i)];
+						#if FXN5_LEGACY_BEHAVIOR
 						self->mem_pt = self->mem_pt % 0x1000;
 						#endif
 					}
