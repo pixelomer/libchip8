@@ -456,7 +456,9 @@ void chip8_cycle(chip8_t *self) {
 chip8_t *chip8_loop(chip8_t *self) {
 	while (1) {
 		chip8_cycle(self);
-		usleep(1000000 / 500);
+		uint8_t speed = self->speed;
+		if (speed != 255) speed++;
+		usleep((1000000/speed) / 500);
 	}
 	return self;
 }

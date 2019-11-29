@@ -31,6 +31,9 @@ struct chip8_t {
 	// 1 represents a white pixel and 0 represents a black pixel. Use this for drawing.
 	bool framebuffer[CHIP8_SCREEN_WIDTH][CHIP8_SCREEN_HEIGHT];
 
+	// Increase this value to increase the speed. Set to 0 for default speed.
+	uint8_t speed;
+
 	// Access these directly if you want to have more control over the input.
 	uint16_t keyboard_mask; // Example (check key F): self->keyboard_mask & 0xF
 	bool dont_auto_update_keyboard_mask;

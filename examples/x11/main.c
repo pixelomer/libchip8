@@ -167,25 +167,45 @@ int main(int argc, char **argv) {
 			XUnlockDisplay(display);
 			continue;
 		}
+		_Bool is_speed_key = 1;
+		switch (event.xkey.keycode) {
+			case XK_Up:
+				if (chip8->speed < 255) chip8->speed++;
+				break;
+			case XK_Down:
+				if (chip8->speed > 0) chip8->speed--;
+				break;
+			default:
+				is_speed_key = 0;
+		}
+		if (is_speed_key) continue;
 		if (!XLookupString(&event.xkey, input_buffer, 1, &key_symbol, NULL)) input_buffer[0] = 0;
 		char c = *input_buffer;
 		if ((c >= 'a') && (c <= 'z')) c -= 0x20;
-		unsigned char chip8_key = 0x10;
-		static const char *keymap = "X123QWEASDZC4RFV";
-		for (unsigned char i=0; i<0x10; i++) {
+		unsigned char chip8_key = 0x12;
+		static const char *keymap = "X123QWEASDZC4RFVOL";
+		for (unsigned char i=0; i<0x12; i++) {
 			if (keymap[i] == c) {
 				chip8_key = i;
 				break;
 			}
 		}
-		if (chip8_key == 0x10) continue;
-		switch (event.type) {
-			case KeyPress:
-				chip8->keyboard_mask |= (1UL << chip8_key);
+		switch (chip8_key) {
+			case 0x10:
+				if (chip8->speed < 255) chip8->speed++;
+			case 0x12:
 				break;
-			case KeyRelease:
-				chip8->keyboard_mask &= ~(1UL << chip8_key);
-				break;
+			case 0x11:
+				if (chip8->speed > 0) chip8->speed--;
+			default:
+				switch (event.type) {
+					case KeyPress:
+						chip8->keyboard_mask |= (1UL << chip8_key);
+						break;
+					case KeyRelease:
+						chip8->keyboard_mask &= ~(1UL << chip8_key);
+						break;
+				}
 		}
 	}
 	XCloseDisplay(display);
